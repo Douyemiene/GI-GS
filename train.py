@@ -23,6 +23,7 @@ from arguments import GroupParams, ModelParams, OptimizationParams, PipelinePara
 from gaussian_renderer import render
 from pbr import CubemapLight, get_brdf_lut, pbr_shading
 from scene import GaussianModel, Scene, Camera
+from scene.surfel_gaussian_model import SurfelGaussianModel
 from utils.general_utils import safe_state
 from utils.image_utils import psnr, turbo_cmap, erode
 from utils.loss_utils import l1_loss, ssim, get_img_grad_weight
@@ -191,9 +192,14 @@ def training(
     step: int = 16,
     start: int = 8,
     indirect: bool = False,
+    use_surfels: bool = False,
 ) -> None:
     first_iter = 0
-    gaussians = GaussianModel(dataset.sh_degree)
+    if use_surfels:
+        gaussians = SurfelGaussianModel(dataset.sh_degree)
+        print("[SurfGI-GS] Using 2D Gaussian surfel primitives (analytic normals, first-hit depth).")
+    else:
+        gaussians = GaussianModel(dataset.sh_degree)
     scene = Scene(dataset, gaussians)
     gaussians.training_setup(opt)
     tb_writer = prepare_output_and_logger(dataset)
@@ -856,6 +862,7 @@ if __name__ == "__main__":
     parser.add_argument("--gamma", action="store_true", help="Enable linear_to_sRGB for gamma correction.")
     parser.add_argument("--metallic", action="store_true", help="Enable metallic material reconstruction.")
     parser.add_argument("--indirect", action="store_true", help="Enable indirect diffuse modeling.")
+    parser.add_argument("--use_surfels", action="store_true", help="Use 2D Gaussian surfel primitives (SurfGI-GS) instead of 3DGS.")
     args = parser.parse_args(sys.argv[1:])
     args.test_iterations.append(args.iterations)
     args.save_iterations.append(args.iterations)
@@ -894,6 +901,7 @@ if __name__ == "__main__":
         step=args.step,
         start=args.start,
         indirect=args.indirect,
+        use_surfels=args.use_surfels,
     )
 
     # All done

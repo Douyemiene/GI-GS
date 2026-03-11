@@ -18,6 +18,7 @@ from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianR
 from arguments import GroupParams
 from scene.cameras import Camera
 from scene.gaussian_model import GaussianModel
+from scene.surfel_gaussian_model import SurfelGaussianModel
 import kornia
 from utils.sh_utils import eval_sh
 import os
@@ -29,7 +30,7 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 def render(
     viewpoint_camera: Camera,
-    pc: GaussianModel,
+    pc: "GaussianModel | SurfelGaussianModel",
     pipe: GroupParams,
     bg_color: torch.Tensor,
     scaling_modifier: float = 1.0,
@@ -83,7 +84,10 @@ def render(
         prefiltered=False,
         debug=pipe.debug,
         inference=inference,
-        argmax_depth=False,
+        # For surfel primitives, use max-weight depth (closest proxy to first-hit
+        # intersection without replacing the CUDA kernel).  This fixes Failure 2
+        # (position reconstruction corruption) when using SurfelGaussianModel.
+        argmax_depth=isinstance(pc, SurfelGaussianModel),
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)

@@ -17,7 +17,9 @@ import math
 import json
 
 from arguments import GroupParams, ModelParams, PipelineParams, get_combined_args
+import kornia
 from gaussian_renderer import GaussianModel, render
+from scene.surfel_gaussian_model import SurfelGaussianModel
 from pbr import CubemapLight, get_brdf_lut, pbr_shading
 from scene import Scene
 from utils.general_utils import safe_state
@@ -250,9 +252,10 @@ def launch(
     thick: float = 0.05,
     delta: float = 0.0625,
     step: int = 16,
-    start: int = 8
+    start: int = 8,
+    use_surfels: bool = False,
 ) -> None:
-    gaussians = GaussianModel(dataset.sh_degree)
+    gaussians = SurfelGaussianModel(dataset.sh_degree) if use_surfels else GaussianModel(dataset.sh_degree)
     scene = Scene(dataset, gaussians, shuffle=False)
 
     # load hdri
@@ -334,6 +337,7 @@ if __name__ == "__main__":
     parser.add_argument("--step", default=16, type=int, help="Path tracing steps")
     parser.add_argument("--start", default=8, type=int, help="Path tracing starting point")
     parser.add_argument("--metallic", action="store_true", help="Enable metallic material reconstruction.")
+    parser.add_argument("--use_surfels", action="store_true", help="Load checkpoint as SurfelGaussianModel (SurfGI-GS).")
     args = get_combined_args(parser)
 
     model_path = os.path.dirname(args.checkpoint)
@@ -358,7 +362,8 @@ if __name__ == "__main__":
         thick=args.thick,
         delta=args.delta,
         step=args.step,
-        start=args.start
+        start=args.start,
+        use_surfels=args.use_surfels,
     )
 
 

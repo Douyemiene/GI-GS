@@ -19,6 +19,7 @@ import kornia
 
 from arguments import GroupParams, ModelParams, PipelineParams, get_combined_args
 from gaussian_renderer import GaussianModel, render
+from scene.surfel_gaussian_model import SurfelGaussianModel
 from pbr import CubemapLight, get_brdf_lut, pbr_shading
 from scene import Scene
 from utils.general_utils import safe_state
@@ -319,6 +320,7 @@ def launch(
     metallic: bool = False,
     tone: bool = False,
     gamma: bool = False,
+    use_surfels: bool = False,
     radius: float = 0.8,
     bias: float = 0.01,
     thick: float = 0.05,
@@ -328,7 +330,7 @@ def launch(
     indirect: bool = False,
     brdf_eval: bool = False,
 ) -> None:
-    gaussians = GaussianModel(dataset.sh_degree)
+    gaussians = SurfelGaussianModel(dataset.sh_degree) if use_surfels else GaussianModel(dataset.sh_degree)
     scene = Scene(dataset, gaussians, shuffle=False)
     cubemap = CubemapLight(base_res=256).cuda()
 
@@ -515,6 +517,7 @@ if __name__ == "__main__":
     parser.add_argument("--start", default=8, type=int, help="Path tracing starting point")
     parser.add_argument("--indirect", action="store_true", help="Enable indirect diffuse modeling.")
     parser.add_argument("--brdf_eval", action="store_true", help="Enable to evaluate reconstructed BRDF.")
+    parser.add_argument("--use_surfels", action="store_true", help="Load checkpoint as SurfelGaussianModel (SurfGI-GS).")
     args = get_combined_args(parser)
 
     model_path = os.path.dirname(args.checkpoint)
@@ -542,4 +545,5 @@ if __name__ == "__main__":
         start=args.start,
         indirect=args.indirect,
         brdf_eval=args.brdf_eval,
+        use_surfels=args.use_surfels,
     )
